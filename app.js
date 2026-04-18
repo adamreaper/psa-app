@@ -25,12 +25,6 @@ function parseEbayUrl(url) {
 
 function setTheme(theme) {
   document.body.setAttribute('data-theme', theme);
-  localStorage.setItem('psaTheme', theme);
-  const primary = $('themeToggleBtn');
-  const mirror = $('themeToggleMirrorBtn');
-  const label = theme === 'retro' ? 'Switch to Modern' : 'Switch to Retro';
-  if (primary) primary.textContent = label;
-  if (mirror) mirror.textContent = theme === 'retro' ? 'Toggle Theme' : 'Toggle Theme';
 }
 
 function setBackendStatus(mode, text) {
@@ -257,20 +251,7 @@ function loadDemo() {
 }
 
 function init() {
-  const savedTheme = localStorage.getItem('psaTheme') || 'retro';
-  setTheme(savedTheme);
-
-  $('logoutBtn')?.addEventListener('click', () => {
-    window.location.href = '/api/logout';
-  });
-
-  $('themeToggleBtn').addEventListener('click', () => {
-    setTheme(document.body.getAttribute('data-theme') === 'retro' ? 'modern' : 'retro');
-  });
-
-  $('themeToggleMirrorBtn').addEventListener('click', () => {
-    setTheme(document.body.getAttribute('data-theme') === 'retro' ? 'modern' : 'retro');
-  });
+  setTheme('modern');
 
   $('inspectionToggleBtn').addEventListener('click', () => {
     const grid = $('photoGrid');
