@@ -1,5 +1,5 @@
 const AUTH_COOKIE = 'psa_owner_auth';
-const LOGIN_PATH = '/login';
+const LOGIN_PATH = '/api/login';
 
 function getPassword() {
   return process.env.APP_PASSWORD || '';
