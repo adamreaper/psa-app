@@ -26,18 +26,16 @@ export async function getEbayAccessToken() {
     : 'https://api.ebay.com';
 
   const auth = Buffer.from(`${clientId.trim()}:${clientSecret.trim()}`).toString('base64');
-  const scope = process.env.EBAY_SCOPE || 'https://api.ebay.com/oauth/api_scope/buy.item.feed https://api.ebay.com/oauth/api_scope/buy.browse';
+  const scope = process.env.EBAY_SCOPE || 'https://api.ebay.com/oauth/api_scope';
 
   const response = await fetch(`${baseUrl}/identity/v1/oauth2/token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      Authorization: `Basic ${auth}`
+      Authorization: `Basic ${auth}`,
+      Accept: 'application/json'
     },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      scope
-    })
+    body: `grant_type=client_credentials&scope=${encodeURIComponent(scope)}`
   });
 
   const rawText = await response.text();
