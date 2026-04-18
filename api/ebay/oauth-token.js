@@ -1,6 +1,12 @@
 let cachedToken = null;
 let cachedExpiry = 0;
 
+function redact(value = '') {
+  if (!value) return '(missing)';
+  if (value.length <= 8) return `${value.slice(0, 2)}***`;
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
+}
+
 export async function getEbayAccessToken() {
   const now = Date.now();
   if (cachedToken && now < cachedExpiry - 60_000) {
@@ -9,13 +15,18 @@ export async function getEbayAccessToken() {
 
   const clientId = process.env.EBAY_CLIENT_ID;
   const clientSecret = process.env.EBAY_CLIENT_SECRET;
+  const environment = process.env.EBAY_ENVIRONMENT || 'production';
 
   if (!clientId || !clientSecret) {
     throw new Error('Missing EBAY_CLIENT_ID or EBAY_CLIENT_SECRET');
   }
 
-  const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-  const response = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
+  const baseUrl = environment === 'sandbox'
+    ? 'https://api.sandbox.ebay.com'
+    : 'https://api.ebay.com';
+
+  const auth = Buffer.from(`${clientId.trim()}:${clientSecret.trim()}`).toString('base64');
+  const response = await fetch(`${baseUrl}/identity/v1/oauth2/token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -27,9 +38,25 @@ export async function getEbayAccessToken() {
     })
   });
 
-  const data = await response.json();
+  const rawText = await response.text();
+  let data = {};
+  try {
+    data = JSON.parse(rawText);
+  } catch {
+    data = { rawText };
+  }
+
   if (!response.ok || !data.access_token) {
-    throw new Error(data.error_description || data.error || 'Failed to get eBay token');
+    const detail = {
+      status: response.status,
+      environment,
+      clientId: redact(clientId.trim()),
+      secretPrefix: redact(clientSecret.trim()),
+      error: data.error || null,
+      error_description: data.error_description || null,
+      rawText: typeof data.rawText === 'string' ? data.rawText.slice(0, 500) : null
+    };
+    throw new Error(`Failed to get eBay token: ${JSON.stringify(detail)}`);
   }
 
   cachedToken = data.access_token;
