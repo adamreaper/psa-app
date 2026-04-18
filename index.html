@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PSA Scout Terminal</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-theme="retro">
+  <div class="wallpaper-layer"></div>
+  <div class="app">
+    <section class="hero browser-shell">
+      <div class="browser-bar top-chrome">
+        <div class="window-lights">
+          <span></span><span></span><span></span>
+        </div>
+        <div class="browser-title">PSA Scout Browser</div>
+        <div class="hero-actions">
+          <button id="themeToggleBtn" class="theme-toggle-btn secondary" type="button">Switch to Modern</button>
+          <div class="browser-badge">paste-link analyzer</div>
+        </div>
+      </div>
+      <div class="browser-toolbar">
+        <div class="nav-button">◀</div>
+        <div class="nav-button">▶</div>
+        <div class="nav-button">↻</div>
+        <div class="address-bar">https://psa-scout.local/analyze/ebay</div>
+      </div>
+      <div class="hero-content">
+        <div class="hero-kicker">Collector grading terminal</div>
+        <div class="hero-logo-lockup">
+          <div class="hero-logo-mark">PSA</div>
+          <div>
+            <div class="hero-wordmark">Scout Terminal</div>
+            <h1>Paste the eBay link, get the ranking</h1>
+          </div>
+        </div>
+        <p>Built for fast flipping decisions. Paste a listing URL and let the app fetch, score, and rank the opportunity.</p>
+        <div class="single-intake-shell">
+          <label for="listingUrl">eBay listing URL</label>
+          <input id="listingUrl" placeholder="https://www.ebay.com/itm/..." />
+          <div class="button-row three-up">
+            <button id="analyzeListingBtn" type="button">Analyze Listing</button>
+            <button id="loadDemoBtn" class="secondary" type="button">Load Demo</button>
+            <button id="themeToggleMirrorBtn" class="secondary" type="button">Toggle Theme</button>
+          </div>
+          <p class="small inline-note" id="intakeStatus">Paste a link to start. In the final version, this will fetch listing data and analyze automatically.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel section-spacer">
+      <h2><span class="section-icon">✦</span> Listing Snapshot</h2>
+      <div class="summary-card">
+        <div>
+          <div class="summary-label">Listing</div>
+          <div class="summary-title" id="summaryTitle">No listing analyzed yet</div>
+          <div class="summary-meta" id="summaryMeta">Paste an eBay link to load title, seller, and item details.</div>
+        </div>
+        <div class="summary-price-block">
+          <div class="summary-label">Current Buy In</div>
+          <div class="summary-price" id="summaryBuyIn">$0</div>
+          <div class="summary-sub" id="summaryTarget">Target max buy: $0</div>
+        </div>
+      </div>
+      <div class="backend-status" id="backendStatus">
+        <span class="status-dot status-idle"></span>
+        <div>
+          <strong>Pipeline status:</strong> backend not fully connected.
+          <div class="small" id="backendStatusText">Waiting for listing fetch and automated ranking.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel section-spacer">
+      <h2><span class="section-icon">◆</span> Ranking Output</h2>
+      <div class="stats ranking-grid">
+        <div class="stat rank-primary">
+          <div class="label">Overall Rank</div>
+          <div class="value" id="gradeRank">--</div>
+        </div>
+        <div class="stat">
+          <div class="label">Decision</div>
+          <div class="value" id="recommendation">--</div>
+        </div>
+        <div class="stat">
+          <div class="label">Confidence</div>
+          <div class="value" id="confidence">--%</div>
+          <div class="meter"><div id="confidenceMeter"></div></div>
+        </div>
+        <div class="stat">
+          <div class="label">PSA 10 Probability</div>
+          <div class="value" id="probability">--%</div>
+          <div class="meter"><div id="probabilityMeter"></div></div>
+        </div>
+        <div class="stat">
+          <div class="label">Expected Value</div>
+          <div class="value" id="expectedProfit">$0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Max Buy Price</div>
+          <div class="value" id="maxBuyPrice">$0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Offer Suggestion</div>
+          <div class="value" id="offerSuggestion">--</div>
+        </div>
+        <div class="stat">
+          <div class="label">Risk Flags</div>
+          <div class="value risk-flags" id="riskFlags">None yet</div>
+        </div>
+      </div>
+      <p class="result-line">Signal: <span id="recommendationBadge" class="status-chip status-chip-maybe">WAITING</span></p>
+      <h3>Why</h3>
+      <ul id="reasons"><li>Paste a listing URL to generate a ranked output.</li></ul>
+      <p class="small" id="breakevenText">This prototype is being pivoted to a fully automated analyzer.</p>
+    </section>
+
+    <section class="panel section-spacer">
+      <h2><span class="section-icon">▣</span> Listing Photos</h2>
+      <div class="button-row three-up">
+        <button id="inspectionToggleBtn" class="secondary" type="button">Inspection Mode Off</button>
+        <button id="inspectionZoomBtn" class="secondary" type="button">Zoom Frame</button>
+        <button id="fetchStubBtn" class="secondary" type="button">Fetch Stub Data</button>
+      </div>
+      <div class="inspection-readout small" id="inspectionReadout">Photo review stays available, but it should support the automated result instead of driving the whole workflow.</div>
+      <div class="photo-grid" id="photoGrid">
+        <div class="photo-slot">Front image slot</div>
+        <div class="photo-slot">Back image slot</div>
+        <div class="photo-slot">Extra angle</div>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

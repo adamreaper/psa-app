@@ -1,0 +1,9 @@
+{
+  "name": "psa-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PSA 10 probability app, pre-DB and pre-production backend scaffold",
+  "scripts": {
+    "dev": "vercel dev"
+  }
+}

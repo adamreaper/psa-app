@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>PSA App Interaction Smoke</title></head>
+<body>
+<iframe id="app" src="http://127.0.0.1:8123/psa-app/index.html" style="width:1400px;height:2200px;border:0;"></iframe>
+<pre id="out">running...</pre>
+<script>
+(async () => {
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const iframe = document.getElementById('app');
+  await new Promise(resolve => iframe.addEventListener('load', resolve, { once: true }));
+  await wait(300);
+  const w = iframe.contentWindow;
+  const d = iframe.contentDocument;
+
+  const click = id => d.getElementById(id).click();
+  const setValue = (id, value) => {
+    const el = d.getElementById(id);
+    el.value = value;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
+  const results = [];
+
+  try {
+    results.push(['theme-initial', d.body.getAttribute('data-theme')]);
+    click('themeToggleBtn');
+    await wait(100);
+    results.push(['theme-after-toggle', d.body.getAttribute('data-theme')]);
+
+    click('loadDemoBtn');
+    await wait(150);
+    results.push(['demo-title', d.getElementById('title').value]);
+    results.push(['summary-title', d.getElementById('summaryTitle').textContent]);
+
+    click('inspectionToggleBtn');
+    await wait(50);
+    results.push(['inspection-mode', d.getElementById('photoGrid').classList.contains('inspection-mode')]);
+
+    click('inspectionZoomBtn');
+    await wait(50);
+    results.push(['zoom-mode', d.getElementById('photoGrid').classList.contains('zoom-frame')]);
+
+    click('analyzeBtn');
+    await wait(100);
+    results.push(['probability', d.getElementById('probability').textContent]);
+    results.push(['recommendation', d.getElementById('recommendation').textContent]);
+    results.push(['recommendation-badge', d.getElementById('recommendationBadge').textContent]);
+
+    setValue('compNotes', 'Strong recent comp at 525, minor seller photo glare.');
+    click('saveBtn');
+    await wait(100);
+    results.push(['history-count', d.querySelectorAll('#historyList .interactive-item').length]);
+
+    const firstHistory = d.querySelector('#historyList .interactive-item');
+    if (firstHistory) {
+      firstHistory.click();
+      await wait(100);
+      results.push(['reload-comp-notes', d.getElementById('compNotes').value]);
+    }
+
+    click('exportBtn');
+    await wait(100);
+    results.push(['backend-status-after-export', d.getElementById('backendStatusText').textContent]);
+
+    setValue('listingUrl', 'https://www.ebay.com/itm/123456789012');
+    click('parseBtn');
+    await wait(50);
+    results.push(['parsed-item-id', d.getElementById('itemId').value]);
+
+    click('fetchStubBtn');
+    await wait(400);
+    results.push(['backend-status-after-fetch', d.getElementById('backendStatusText').textContent]);
+  } catch (error) {
+    results.push(['error', String(error && error.stack || error)]);
+  }
+
+  document.getElementById('out').textContent = JSON.stringify(results, null, 2);
+})();
+</script>
+</body>
+</html>
