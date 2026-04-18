@@ -1,3 +1,5 @@
+import { isAuthorizedRequest, isProtectionEnabled, sendUnauthorized } from '../../auth.js';
+
 async function fetchImageAsDataUrl(url) {
   const response = await fetch(url);
   if (!response.ok) {
@@ -11,6 +13,10 @@ async function fetchImageAsDataUrl(url) {
 }
 
 export default async function handler(req, res) {
+  if (isProtectionEnabled() && !isAuthorizedRequest(req)) {
+    return sendUnauthorized(res);
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }

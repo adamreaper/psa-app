@@ -260,6 +260,10 @@ function init() {
   const savedTheme = localStorage.getItem('psaTheme') || 'retro';
   setTheme(savedTheme);
 
+  $('logoutBtn')?.addEventListener('click', () => {
+    window.location.href = '/api/logout';
+  });
+
   $('themeToggleBtn').addEventListener('click', () => {
     setTheme(document.body.getAttribute('data-theme') === 'retro' ? 'modern' : 'retro');
   });
@@ -289,7 +293,7 @@ function init() {
 
   updateSnapshot({ title: 'No listing analyzed yet', seller: 'Awaiting URL', itemId: 'No item ID yet', buyIn: 0, maxBuy: 0 });
   setRecommendationBadge('waiting');
-  setBackendStatus('idle', 'Waiting for listing fetch and automated ranking.');
+  setBackendStatus('idle', 'Locked and waiting for your private listing fetch and automated ranking.');
 }
 
 init();

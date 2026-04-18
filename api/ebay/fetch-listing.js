@@ -1,6 +1,10 @@
+import { isAuthorizedRequest, isProtectionEnabled, sendUnauthorized } from '../../auth.js';
 import { fetchBrowseItem, normalizeBrowseItem } from './browse-item.js';
 
 export default async function handler(req, res) {
+  if (isProtectionEnabled() && !isAuthorizedRequest(req)) {
+    return sendUnauthorized(res);
+  }
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
