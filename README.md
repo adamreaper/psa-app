@@ -36,8 +36,8 @@ Copy `.env.example` and set:
 - `APP_PASSWORD` for owner-only access
 
 ## Privacy lock
-- If `APP_PASSWORD` is set, the app is protected by a login screen.
-- Unauthorized visitors are redirected to `/login`.
+- If `APP_PASSWORD` is set, the landing page itself is protected.
+- Unauthenticated visits to `/` get the login screen instead of the app.
 - Protected API routes reject unauthorized access with `401`.
 - Use `/api/logout` or the Lock App button to clear access on your device.
 

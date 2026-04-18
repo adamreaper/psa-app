@@ -260,8 +260,9 @@ function init() {
   const savedTheme = localStorage.getItem('psaTheme') || 'retro';
   setTheme(savedTheme);
 
-  $('logoutBtn')?.addEventListener('click', () => {
-    window.location.href = '/api/logout';
+  $('logoutBtn')?.addEventListener('click', async () => {
+    await fetch('/api/logout', { method: 'GET', credentials: 'same-origin' });
+    window.location.href = '/';
   });
 
   $('themeToggleBtn').addEventListener('click', () => {

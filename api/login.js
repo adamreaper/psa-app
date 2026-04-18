@@ -1,11 +1,21 @@
-import { getLoginPageHtml, isProtectionEnabled, setAuthCookie } from '../auth.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { getLoginPageHtml, isAuthorizedRequest, isProtectionEnabled, setAuthCookie } from '../auth.js';
+
+function getAppHtml() {
+  const filePath = path.join(process.cwd(), 'index.html');
+  return fs.readFileSync(filePath, 'utf8');
+}
 
 export default async function handler(req, res) {
   if (!isProtectionEnabled()) {
-    return res.status(200).send(getLoginPageHtml('APP_PASSWORD is not set yet.'));
+    return res.status(200).send(getAppHtml());
   }
 
   if (req.method === 'GET') {
+    if (isAuthorizedRequest(req)) {
+      return res.status(200).send(getAppHtml());
+    }
     return res.status(200).send(getLoginPageHtml());
   }
 
@@ -19,7 +29,5 @@ export default async function handler(req, res) {
   }
 
   setAuthCookie(res);
-  res.statusCode = 302;
-  res.setHeader('Location', '/');
-  return res.end();
+  return res.status(200).json({ ok: true });
 }

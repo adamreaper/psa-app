@@ -1,5 +1,6 @@
 const AUTH_COOKIE = 'psa_owner_auth';
 const LOGIN_PATH = '/api/login';
+const HOME_PATH = '/';
 
 function getPassword() {
   return process.env.APP_PASSWORD || '';
@@ -75,4 +76,4 @@ export function getLoginPageHtml(errorMessage = '') {
 </html>`;
 }
 
-export { AUTH_COOKIE, LOGIN_PATH };
+export { AUTH_COOKIE, LOGIN_PATH, HOME_PATH };
