@@ -1,0 +1,8 @@
+{
+  "OP09-070": {
+    "source": "manual_recent_psa10_sales",
+    "psa10Market": 230,
+    "buyUnder": 55,
+    "notes": "Anchored to recent PSA 10 sales shown by user screenshots, roughly 217.50 to 250.50, instead of stale inflated research-sheet pricing."
+  }
+}
