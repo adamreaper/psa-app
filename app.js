@@ -15,11 +15,34 @@ function clamp(value, min, max) {
 }
 
 function parseEbayUrl(url) {
-  const patterns = [/\/itm\/(\d{9,})/i, /[?&]item=(\d{9,})/i, /[?&]itm=(\d{9,})/i];
+  const patterns = [
+    /\/itm\/(?:[^/?#]+\/)?(\d{9,})/i,
+    /\/p\/(\d{9,})/i,
+    /[?&](?:item|itm|itemid)=?(\d{9,})/i,
+    /[?&](?:id|ul_noapp)=?(\d{9,})/i,
+    /(?:^|[^\d])(\d{9,})(?:[^\d]|$)/
+  ];
   for (const pattern of patterns) {
     const match = url.match(pattern);
     if (match) return match[1];
   }
+
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    if (!host.includes('ebay.')) return '';
+
+    for (const key of ['item', 'itm', 'itemid', 'id', 'ul_noapp']) {
+      const value = parsed.searchParams.get(key);
+      if (value && /^\d{9,}$/.test(value)) return value;
+    }
+
+    const pathMatch = parsed.pathname.match(/\/(?:itm|p)\/(?:[^/?#]+\/)?(\d{9,})/i);
+    if (pathMatch) return pathMatch[1];
+  } catch {
+    return '';
+  }
+
   return '';
 }
 

@@ -21,6 +21,7 @@ Note: the scanner scripts were moved out of this folder into `scanners/` so the 
 
 ## What works now
 - paste-link analyzer UI
+- desktop and mobile eBay listing link normalization
 - ranking output shell
 - real eBay API credential integration points
 - live Browse API fetch route structure

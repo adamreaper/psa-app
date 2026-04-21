@@ -1,6 +1,43 @@
 import { isAuthorizedRequest, isProtectionEnabled, sendUnauthorized } from '../../auth.js';
 import { fetchBrowseItem, normalizeBrowseItem } from './browse-item.js';
 
+function extractEbayItemId(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') return '';
+
+  const trimmed = rawUrl.trim();
+  const patterns = [
+    /\/itm\/(?:[^/?#]+\/)?(\d{9,})/i,
+    /\/p\/(\d{9,})/i,
+    /[?&](?:item|itm|itemid)=?(\d{9,})/i,
+    /[?&](?:id|ul_noapp)=?(\d{9,})/i,
+    /(?:^|[^\d])(\d{9,})(?:[^\d]|$)/
+  ];
+
+  for (const pattern of patterns) {
+    const match = trimmed.match(pattern);
+    if (match) return match[1];
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    const host = parsed.hostname.toLowerCase();
+    if (!host.includes('ebay.')) return '';
+
+    const params = ['item', 'itm', 'itemid', 'id', 'ul_noapp'];
+    for (const key of params) {
+      const value = parsed.searchParams.get(key);
+      if (value && /^\d{9,}$/.test(value)) return value;
+    }
+
+    const pathMatch = parsed.pathname.match(/\/(?:itm|p)\/(?:[^/?#]+\/)?(\d{9,})/i);
+    if (pathMatch) return pathMatch[1];
+  } catch {
+    return '';
+  }
+
+  return '';
+}
+
 export default async function handler(req, res) {
   if (isProtectionEnabled() && !isAuthorizedRequest(req)) {
     return sendUnauthorized(res);
@@ -16,7 +53,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: 'itemId or listingUrl is required' });
     }
 
-    const parsedItemId = itemId || (typeof listingUrl === 'string' ? (listingUrl.match(/\/itm\/(\d{9,})/i)?.[1] || listingUrl.match(/[?&](?:item|itm)=(\d{9,})/i)?.[1] || null) : null);
+    const parsedItemId = itemId || (typeof listingUrl === 'string' ? extractEbayItemId(listingUrl) || null : null);
 
     if (!parsedItemId) {
       return res.status(400).json({ ok: false, error: 'Could not parse a valid eBay item ID' });
