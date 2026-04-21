@@ -1,9 +1,31 @@
+import crypto from 'node:crypto';
+
 const AUTH_COOKIE = 'psa_owner_auth';
 const LOGIN_PATH = '/api/login';
 const HOME_PATH = '/';
+const AUTH_TOKEN_VERSION = 'v1';
 
 function getPassword() {
   return process.env.APP_PASSWORD || '';
+}
+
+function getSessionSecret() {
+  return process.env.APP_SESSION_SECRET || getPassword();
+}
+
+function createAuthToken() {
+  const password = getPassword();
+  const secret = getSessionSecret();
+  if (!password || !secret) return '';
+  return `${AUTH_TOKEN_VERSION}.${crypto.createHmac('sha256', secret).update(`${AUTH_TOKEN_VERSION}:${password}`).digest('hex')}`;
+}
+
+function safeEqual(a, b) {
+  if (!a || !b) return false;
+  const left = Buffer.from(String(a));
+  const right = Buffer.from(String(b));
+  if (left.length !== right.length) return false;
+  return crypto.timingSafeEqual(left, right);
 }
 
 export function isProtectionEnabled() {
@@ -23,13 +45,13 @@ export function parseCookies(req) {
 export function isAuthorizedRequest(req) {
   if (!isProtectionEnabled()) return true;
   const cookies = parseCookies(req);
-  return cookies[AUTH_COOKIE] === getPassword();
+  return safeEqual(cookies[AUTH_COOKIE], createAuthToken());
 }
 
 export function setAuthCookie(res) {
-  const password = getPassword();
+  const token = createAuthToken();
   const secure = process.env.NODE_ENV === 'production';
-  const cookie = `${AUTH_COOKIE}=${encodeURIComponent(password)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000${secure ? '; Secure' : ''}`;
+  const cookie = `${AUTH_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000${secure ? '; Secure' : ''}`;
   res.setHeader('Set-Cookie', cookie);
 }
 

@@ -1,15 +1,133 @@
+import dns from 'node:dns/promises';
+import net from 'node:net';
 import { isAuthorizedRequest, isProtectionEnabled, sendUnauthorized } from '../../auth.js';
 
-async function fetchImageAsDataUrl(url) {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch image: ${url}`);
+const MAX_IMAGES = 4;
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const FETCH_TIMEOUT_MS = 10000;
+const MAX_REDIRECTS = 3;
+
+function parseAllowedHosts() {
+  const raw = process.env.IMAGE_FETCH_ALLOWLIST || 'i.ebayimg.com,thumbs.ebaystatic.com';
+  return raw
+    .split(',')
+    .map(value => value.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+const ALLOWED_HOSTS = parseAllowedHosts();
+
+function isLoopbackOrPrivateIp(ip) {
+  if (!net.isIP(ip)) return true;
+
+  if (net.isIPv4(ip)) {
+    const parts = ip.split('.').map(Number);
+    if (parts[0] === 10) return true;
+    if (parts[0] === 127) return true;
+    if (parts[0] === 169 && parts[1] === 254) return true;
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+    if (parts[0] === 192 && parts[1] === 168) return true;
+    if (parts[0] === 0) return true;
+    return false;
   }
 
-  const contentType = response.headers.get('content-type') || 'image/jpeg';
-  const arrayBuffer = await response.arrayBuffer();
-  const base64 = Buffer.from(arrayBuffer).toString('base64');
-  return `data:${contentType};base64,${base64}`;
+  const normalized = ip.toLowerCase();
+  return normalized === '::1'
+    || normalized === '::'
+    || normalized.startsWith('fc')
+    || normalized.startsWith('fd')
+    || normalized.startsWith('fe80')
+    || normalized.startsWith('::ffff:127.')
+    || normalized.startsWith('::ffff:10.')
+    || normalized.startsWith('::ffff:192.168.')
+    || /^::ffff:172\.(1[6-9]|2\d|3[0-1])\./.test(normalized)
+    || normalized.startsWith('2001:db8');
+}
+
+function isAllowedHost(hostname) {
+  const normalized = hostname.toLowerCase();
+  return ALLOWED_HOSTS.some(allowed => normalized === allowed || normalized.endsWith(`.${allowed}`));
+}
+
+async function assertPublicImageUrl(inputUrl) {
+  let current = new URL(inputUrl);
+
+  for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
+    if (current.protocol !== 'https:') {
+      throw new Error('Only https image URLs are allowed');
+    }
+    if (current.username || current.password) {
+      throw new Error('Image URLs cannot include credentials');
+    }
+    if (current.port && current.port !== '443') {
+      throw new Error('Only standard https image URLs are allowed');
+    }
+    if (!isAllowedHost(current.hostname)) {
+      throw new Error(`Host is not allowed: ${current.hostname}`);
+    }
+
+    const results = await dns.lookup(current.hostname, { all: true });
+    if (!results.length || results.some(result => isLoopbackOrPrivateIp(result.address))) {
+      throw new Error(`Refusing to fetch from non-public host: ${current.hostname}`);
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(current, {
+        method: 'GET',
+        redirect: 'manual',
+        signal: controller.signal,
+        headers: {
+          Accept: 'image/*'
+        }
+      });
+
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get('location');
+        if (!location) {
+          throw new Error('Image redirect missing location header');
+        }
+        if (redirectCount === MAX_REDIRECTS) {
+          throw new Error('Too many redirects while fetching image');
+        }
+        current = new URL(location, current);
+        continue;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${current}`);
+      }
+
+      const contentType = (response.headers.get('content-type') || '').toLowerCase();
+      if (!contentType.startsWith('image/')) {
+        throw new Error(`URL did not return an image: ${current.hostname}`);
+      }
+
+      const contentLength = Number(response.headers.get('content-length') || '0');
+      if (contentLength && contentLength > MAX_IMAGE_BYTES) {
+        throw new Error(`Image is too large: ${current.hostname}`);
+      }
+
+      const chunks = [];
+      let totalBytes = 0;
+      for await (const chunk of response.body) {
+        totalBytes += chunk.length;
+        if (totalBytes > MAX_IMAGE_BYTES) {
+          throw new Error(`Image exceeded size limit: ${current.hostname}`);
+        }
+        chunks.push(chunk);
+      }
+
+      const base64 = Buffer.concat(chunks).toString('base64');
+      return `data:${contentType};base64,${base64}`;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  throw new Error('Unexpected image fetch state');
 }
 
 export default async function handler(req, res) {
@@ -33,8 +151,8 @@ export default async function handler(req, res) {
       return res.status(500).json({ ok: false, error: 'Missing OPENAI_API_KEY' });
     }
 
-    const sampledUrls = imageUrls.slice(0, 4);
-    const imageInputs = await Promise.all(sampledUrls.map(fetchImageAsDataUrl));
+    const sampledUrls = imageUrls.slice(0, MAX_IMAGES);
+    const imageInputs = await Promise.all(sampledUrls.map(assertPublicImageUrl));
 
     const inputContent = [
       {
@@ -89,7 +207,8 @@ export default async function handler(req, res) {
       ok: true,
       mode: 'openai-vision',
       vision: parsed,
-      sampledImages: sampledUrls
+      sampledImages: sampledUrls,
+      imageHostAllowlist: ALLOWED_HOSTS
     });
   } catch (error) {
     return res.status(500).json({ ok: false, error: error.message || 'Vision analysis failed' });

@@ -3,6 +3,8 @@
 ## Current State
 This is now a paste-link PSA analyzer prototype being prepared for real eBay API intake.
 
+Note: the scanner scripts were moved out of this folder into `scanners/` so the app and scanner products are no longer mixed together.
+
 ### Frontend
 - `index.html`
 - `styles.css`
@@ -34,11 +36,15 @@ Copy `.env.example` and set:
 - `EBAY_ENVIRONMENT`
 - optional: `EBAY_MARKETPLACE_ID`
 - `APP_PASSWORD` for owner-only access
+- optional but recommended: `APP_SESSION_SECRET` to sign auth cookies independently of the app password
+- optional: `IMAGE_FETCH_ALLOWLIST` comma-separated hostnames allowed for vision image fetches (defaults to eBay image hosts)
 
 ## Privacy lock
 - If `APP_PASSWORD` is set, the landing page itself is protected.
 - Unauthenticated visits to `/` get the login screen instead of the app.
 - Protected API routes reject unauthorized access with `401`.
+- Auth cookies are signed and no longer store the raw app password.
+- Vision image fetches are restricted to allowed public hosts and reject private-network targets.
 - Use `/api/logout` or the Lock App button to clear access on your device.
 
 ## Current intended flow
