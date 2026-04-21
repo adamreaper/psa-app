@@ -184,15 +184,18 @@ function applyAnalysis(result) {
 }
 
 function simulateAnalysis(listing) {
-  const probability = clamp(listing.itemId ? 74 : 58, 1, 99);
-  const confidence = listing.photoUrls?.length ? 81 : 62;
-  const maxBuyPrice = listing.price ? Math.max(0, listing.price - 28) : 150;
-  const expectedProfit = listing.price ? Math.round((listing.price * 0.22) + 34) : 82;
+  const buyIn = (listing.price || 0) + (listing.shipping || 0);
+  const photoCount = Array.isArray(listing.photoUrls) ? listing.photoUrls.length : 0;
+  const probability = clamp((listing.itemId ? 68 : 55) + Math.min(photoCount * 3, 12), 1, 99);
+  const confidence = clamp((photoCount >= 4 ? 78 : 58) + (listing.itemId ? 4 : 0), 15, 95);
+  const expectedNet = Math.round((buyIn * 1.32) + 26);
+  const maxBuyPrice = buyIn ? Math.max(0, Math.round(expectedNet * 0.82)) : 150;
+  const expectedProfit = buyIn ? expectedNet - buyIn : 42;
   const recommendation = probability >= 72 ? 'buy' : probability >= 52 ? 'maybe' : 'pass';
   const gradeRank = recommendation === 'buy' ? 'A' : recommendation === 'maybe' ? 'B' : 'D';
   const riskFlags = [
-    listing.photoUrls?.length ? 'photo count decent' : 'limited photos',
-    'surface unknown',
+    photoCount ? `${photoCount} photos available` : 'limited photos',
+    'pricing model is estimated in fallback mode',
     'final grade not guaranteed'
   ];
 
@@ -207,10 +210,10 @@ function simulateAnalysis(listing) {
     riskFlags,
     reasons: [
       'Listing metadata was pulled into the analyzer flow.',
-      'Ranking is currently prototype logic until live photo scoring is connected.',
-      'This interface is now centered on paste-link decision speed.'
+      'Fallback mode estimates margin using buy-in plus simple upside assumptions.',
+      'Live mode is preferred because it uses structured vision and tighter economics.'
     ],
-    summary: `Prototype rank generated from fetched listing data. Final version should replace this with real automated photo + metadata scoring.`
+    summary: `Fallback rank generated from listing economics and photo count. Live mode now uses stronger pricing and visual scoring.`
   };
 }
 
